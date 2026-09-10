@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/cart_provider.dart';
 import '../../shared/custom_appbar.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -13,7 +14,6 @@ class CartScreen extends StatelessWidget {
       appBar: const CustomAppBar(),
       body: Consumer<CartProvider>(
         builder: (context, cart, child) {
-          // Agar cart khali hai
           if (cart.items.isEmpty) {
             return Center(
               child: Column(
@@ -30,15 +30,13 @@ class CartScreen extends StatelessWidget {
             );
           }
 
-          // Agar cart mein items hain
           return Column(
             children: [
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.all(20),
-                  itemCount: cart.items.length, // Total unique items
+                  itemCount: cart.items.length, 
                   itemBuilder: (context, index) {
-                    // Yahan hume direct CartItem object mil raha hai
                     final cartItem = cart.items.values.elementAt(index);
                     
                     return Card(
@@ -49,7 +47,6 @@ class CartScreen extends StatelessWidget {
                         padding: const EdgeInsets.all(15.0),
                         child: Row(
                           children: [
-                            // Product Image
                             Container(
                               width: 80,
                               height: 80,
@@ -65,8 +62,6 @@ class CartScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 20),
-                            
-                            // Product Details
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,12 +71,10 @@ class CartScreen extends StatelessWidget {
                                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                   ),
                                   const SizedBox(height: 10),
-                                  // Quantity Controls
                                   Row(
                                     children: [
                                       IconButton(
                                         icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                                        // Decrease quantity (id/name pass karna hai)
                                         onPressed: () => cart.removeItem(cartItem.id),
                                       ),
                                       Text(
@@ -90,7 +83,6 @@ class CartScreen extends StatelessWidget {
                                       ),
                                       IconButton(
                                         icon: const Icon(Icons.add_circle_outline, color: Colors.green),
-                                        // Increase quantity (Poora CartItem pass karna hai)
                                         onPressed: () => cart.addItem(cartItem),
                                       ),
                                     ],
@@ -98,12 +90,9 @@ class CartScreen extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            
-                            // Optional: Delete Button (direct remove)
                             IconButton(
                               icon: const Icon(Icons.delete_outline, color: Colors.grey),
                               onPressed: () {
-                                // Ek hi baar mein item clear karne ke liye logic
                                 while(cart.getQuantity(cartItem.id) > 0) {
                                   cart.removeItem(cartItem.id);
                                 }
@@ -117,7 +106,6 @@ class CartScreen extends StatelessWidget {
                 ),
               ),
               
-              // Bottom Checkout Bar
               Container(
                 padding: const EdgeInsets.all(25),
                 decoration: BoxDecoration(
@@ -147,10 +135,7 @@ class CartScreen extends StatelessWidget {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       onPressed: () {
-                        // Checkout Button Logic
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Proceeding to Checkout...')),
-                        );
+                        _showCheckoutDialog(context, cart); 
                       },
                       child: const Text('Checkout', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
@@ -160,6 +145,235 @@ class CartScreen extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+
+  void _showCheckoutDialog(BuildContext context, CartProvider cart) {
+    final formKey = GlobalKey<FormState>();
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController addressController = TextEditingController();
+    final TextEditingController phoneController = TextEditingController();
+    final TextEditingController emailController = TextEditingController();
+    final TextEditingController locationController = TextEditingController();
+    final TextEditingController landmarkController = TextEditingController();
+
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1E1E1E),
+              title: const Text('Checkout Details', style: TextStyle(color: Colors.white, fontSize: 20)),
+              content: SizedBox(
+                width: 400,
+                child: SingleChildScrollView(
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildTextField(nameController, 'Full Name', Icons.person),
+                        const SizedBox(height: 12),
+                        _buildTextField(phoneController, 'Phone Number', Icons.phone, keyboardType: TextInputType.phone),
+                        const SizedBox(height: 12),
+                        _buildTextField(emailController, 'Email ID', Icons.email, keyboardType: TextInputType.emailAddress),
+                        const SizedBox(height: 12),
+                        _buildTextField(addressController, 'Delivery Address', Icons.home),
+                        const SizedBox(height: 12),
+                        _buildTextField(locationController, 'City / Location', Icons.location_city),
+                        const SizedBox(height: 12),
+                        _buildTextField(landmarkController, 'Landmark (Optional)', Icons.landscape),
+                        const SizedBox(height: 20),
+                        
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF63D392).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFF63D392)),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.money, color: Color(0xFF63D392)),
+                              SizedBox(width: 10),
+                              Expanded(child: Text('Payment Method: Cash on Delivery (COD)', style: TextStyle(color: Color(0xFF63D392), fontWeight: FontWeight.bold))),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF63D392), foregroundColor: Colors.black),
+                  onPressed: isSubmitting ? null : () async {
+                    if (formKey.currentState!.validate()) {
+                      setState(() => isSubmitting = true);
+                      
+                      try {
+                        List<Map<String, dynamic>> orderItems = [];
+                        cart.items.forEach((key, item) {
+                          orderItems.add({
+                            'item_name': item.name,
+                            'quantity': item.quantity,
+                          });
+                        });
+
+                        final DatabaseReference ordersRef = FirebaseDatabase.instance.ref().child('cod_orders').push();
+                        await ordersRef.set({
+                          'customer_name': nameController.text.trim(),
+                          'phone': phoneController.text.trim(),
+                          'email': emailController.text.trim(),
+                          'address': addressController.text.trim(),
+                          'location': locationController.text.trim(),
+                          'landmark': landmarkController.text.trim(),
+                          'payment_mode': 'COD',
+                          'status': 'Pending',
+                          'total_quantity': cart.itemCount,
+                          'ordered_items': orderItems, 
+                          'timestamp': DateTime.now().toIso8601String(),
+                        });
+
+                        Navigator.pop(context); // Checkout form band karein
+                        
+                        // Yahan Success Animation Dialog show hoga
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (context) => const OrderSuccessAnimation(),
+                        );
+                        
+                      } catch (e) {
+                        setState(() => isSubmitting = false);
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+                      }
+                    }
+                  },
+                  child: isSubmitting 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                    : const Text('Confirm Order', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label, IconData icon, {TextInputType keyboardType = TextInputType.text}) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: const TextStyle(color: Colors.white),
+      validator: (value) {
+        if (label != 'Landmark (Optional)' && (value == null || value.isEmpty)) {
+          return 'Please enter $label';
+        }
+        return null;
+      },
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.grey),
+        prefixIcon: Icon(icon, color: Colors.grey),
+        filled: true,
+        fillColor: const Color(0xFF2A2A2A),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+      ),
+    );
+  }
+}
+
+// =========================================================
+// ORDER SUCCESS ANIMATION WIDGET
+// =========================================================
+class OrderSuccessAnimation extends StatefulWidget {
+  const OrderSuccessAnimation({super.key});
+
+  @override
+  State<OrderSuccessAnimation> createState() => _OrderSuccessAnimationState();
+}
+
+class _OrderSuccessAnimationState extends State<OrderSuccessAnimation> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _scaleAnimation = CurvedAnimation(parent: _controller, curve: Curves.elasticOut);
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      content: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ScaleTransition(
+              scale: _scaleAnimation,
+              child: const Icon(Icons.check_circle, color: Colors.green, size: 90),
+            ),
+            const SizedBox(height: 25),
+            const Text(
+              'Order Confirmed!', 
+              style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)
+            ),
+            const SizedBox(height: 15),
+            Container(
+              padding: const EdgeInsets.all(15),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+              ),
+              child: const Text(
+                'Our team will contact you within 1 to 24 hours to confirm your order.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.blue, fontSize: 16, height: 1.4),
+              ),
+            ),
+            const SizedBox(height: 25),
+            SizedBox(
+              width: double.infinity,
+              height: 45,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF63D392), 
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))
+                ),
+                onPressed: () {
+                  Navigator.pop(context); // Dialog band karein
+                },
+                child: const Text('OK, Got it!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }

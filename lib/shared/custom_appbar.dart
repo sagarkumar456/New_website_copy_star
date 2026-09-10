@@ -52,14 +52,17 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       
       actions: [
-        if (isMobile) 
+        if (isMobile) ...[
+          // Yahan Mobile ke liye Cart Icon add kiya gaya hai
+          _buildMobileCartButton(context),
+          
           Builder(
             builder: (context) => IconButton(
               icon: const Icon(Icons.menu, color: Colors.black87, size: 30),
               onPressed: () => Scaffold.of(context).openEndDrawer(),
             ),
-          )
-        else ...[
+          ),
+        ] else ...[
           _buildNavItem(context, 'Home', '/'),
           _buildNavItem(context, 'Services', '/services'),
           _buildNavItem(context, 'Spare Parts', '/parts'),
@@ -79,6 +82,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
+  // Desktop View wala bada Cart Button
   Widget _buildCartButton(BuildContext context) {
     return Consumer<CartProvider>(
       builder: (context, cart, child) {
@@ -91,6 +95,43 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           onPressed: () => context.go('/cart'),
           icon: const Icon(Icons.shopping_cart, size: 20),
           label: Text('Cart: ${cart.itemCount} Items'),
+        );
+      },
+    );
+  }
+
+  // Mobile View wala chota Cart Icon with Red Badge
+  Widget _buildMobileCartButton(BuildContext context) {
+    return Consumer<CartProvider>(
+      builder: (context, cart, child) {
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black87, size: 26),
+              onPressed: () => context.go('/cart'),
+            ),
+            if (cart.itemCount > 0)
+              Positioned(
+                right: 4,
+                top: 4,
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '${cart.itemCount}',
+                    style: const TextStyle(
+                      color: Colors.white, 
+                      fontSize: 10, 
+                      fontWeight: FontWeight.bold
+                    ),
+                  ),
+                ),
+              ),
+          ],
         );
       },
     );
