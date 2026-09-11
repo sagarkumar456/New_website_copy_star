@@ -129,7 +129,7 @@ class _ContactSectionState extends State<ContactSection> {
                   const SizedBox(height: 30),
                   _buildInfoRow(Icons.phone, 'Call Us / WhatsApp', '+9779851122595'),
                   const SizedBox(height: 30),
-                  _buildInfoRow(Icons.email, 'Email Us', 'support@copystar.com'),
+                  _buildInfoRow(Icons.email, 'Email Us', 'Copystarnepal@hotmail.com'),
                 ],
               ),
             ),
