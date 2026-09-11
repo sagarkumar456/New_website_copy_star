@@ -5,7 +5,6 @@ import 'dart:html' as html;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:video_player/video_player.dart';
 import 'package:firebase_database/firebase_database.dart';
 
 import '../../shared/custom_appbar.dart';
@@ -23,9 +22,9 @@ class HomeScreen extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const HeroVideoBanner(),         
-            _buildBrandFeatureCards(),       
-            _buildValueProps(),              
+            const HeroBannerSection(),         
+            _buildBrandFeatureCards(context), // Context pass kiya gaya hai       
+            _buildValueProps(context),        // Context pass kiya gaya hai      
             const SizedBox(height: 40),
             
             Container(
@@ -55,7 +54,6 @@ class HomeScreen extends StatelessWidget {
         backgroundColor: const Color(0xFF25D366),
         foregroundColor: Colors.white,
         onPressed: () async {
-          // Direct call lagane ka code
           final Uri phoneUri = Uri.parse('tel:+9779851122595');
           if (await canLaunchUrl(phoneUri)) {
             await launchUrl(phoneUri);
@@ -103,9 +101,13 @@ class HomeScreen extends StatelessWidget {
   }
 
   // --- FEATURE CARDS ---
-  Widget _buildBrandFeatureCards() {
+  Widget _buildBrandFeatureCards(BuildContext context) {
+    // Check screen width
+    final isMobile = MediaQuery.of(context).size.width < 800;
+
     return Container(
-      transform: Matrix4.translationValues(0.0, -120.0, 0.0), 
+      // Mobile par kam overlap (-30), Desktop par zyada overlap (-120)
+      transform: Matrix4.translationValues(0.0, isMobile ? -30.0 : -120.0, 0.0), 
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Wrap(
         spacing: 25, runSpacing: 25, alignment: WrapAlignment.center,
@@ -169,10 +171,13 @@ class HomeScreen extends StatelessWidget {
   }
 
   // --- VALUE PROPS ---
-  Widget _buildValueProps() {
+  Widget _buildValueProps(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 800;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-      transform: Matrix4.translationValues(0.0, -60.0, 0.0), 
+      // Mobile par gap theek karne ke liye overlap update
+      transform: Matrix4.translationValues(0.0, isMobile ? -10.0 : -60.0, 0.0), 
       child: Wrap(
         spacing: 40, runSpacing: 40, alignment: WrapAlignment.center,
         children: [
@@ -219,6 +224,46 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
+// =========================================================
+// HERO BANNER SECTION (IMAGE WALA) - FIXED FOR MOBILE
+// =========================================================
+class HeroBannerSection extends StatelessWidget {
+  const HeroBannerSection({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 800;
+
+    return Container(
+      width: double.infinity,
+      // Mobile par "null" dene se height apne aap image ke aspect ratio se set ho jayegi
+      height: isMobile ? null : 550.0, 
+      color: Colors.black, 
+      child: InkWell(
+        onTap: () {
+          context.go('/parts'); 
+        },
+        child: Image.asset(
+          'assets/videos/images/web_backgoud.png', 
+          // fitWidth lagane se image width ke hisab se scale hogi bina kate
+          fit: isMobile ? BoxFit.fitWidth : BoxFit.cover,
+          width: double.infinity,
+          errorBuilder: (context, error, stackTrace) {
+            return Center(
+              child: Text(
+                'Banner Image Not Found\nCheck Path: assets/videos/images/web_backgoud.png',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.red.shade300),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
 // =============================================================
 // SHOP BY CATEGORY SECTION (IMAGE GRID)
 // =============================================================
@@ -242,15 +287,15 @@ class ShopByCategorySection extends StatelessWidget {
       },
       {
         'title': 'CHIPS',
-        'image': 'assets/videos/images/gears.png', 
+        'image': 'assets/videos/images/chip.png', 
       },
       {
         'title': 'PAPER FEED RUBBERS\nAND ROLLERS',
-        'image': 'assets/videos/images/machine.png', 
+        'image': 'assets/videos/images/Rubber.png', 
       },
       {
         'title': 'LOWER PRESSURE ROLLERS',
-        'image': 'assets/videos/images/parts.png', 
+        'image': 'assets/videos/images/roller.png', 
       },
     ];
 
@@ -370,8 +415,9 @@ class ShopByCategorySection extends StatelessWidget {
     );
   }
 }
+
 // =============================================================
-// SOFTWARE DOWNLOAD SECTION (REALTIME DATABASE CODE)
+// SOFTWARE DOWNLOAD SECTION 
 // =============================================================
 class SoftwareDownloadSection extends StatefulWidget {
   const SoftwareDownloadSection({super.key});
@@ -387,7 +433,6 @@ class _SoftwareDownloadSectionState extends State<SoftwareDownloadSection> {
   bool _isSuccess = false;
   String? _selectedBrand; 
 
-  // YAHAN FIRESTORE KI JAGAH REALTIME DATABASE USE HO RAHA HAI
   final DatabaseReference _dbRef = FirebaseDatabase.instance.ref();
 
   final List<String> _brands = ['Xerox', 'Canon', 'Konica Minolta', 'Ricoh'];
@@ -427,7 +472,6 @@ class _SoftwareDownloadSectionState extends State<SoftwareDownloadSection> {
     setState(() { _isLoading = true; _isSuccess = false; });
 
     try {
-      // 1. Download count update in Realtime DB
       final countSnapshot = await _dbRef.child('software_downloads').get();
       int currentCount = 0;
       if (countSnapshot.exists) {
@@ -435,7 +479,6 @@ class _SoftwareDownloadSectionState extends State<SoftwareDownloadSection> {
       }
       await _dbRef.child('software_downloads').set(currentCount + 1);
 
-      // 2. Email save in Realtime DB
       final newEmailRef = _dbRef.child('software_emails').push();
       await newEmailRef.set({
         'email': email,
@@ -540,8 +583,9 @@ class _SoftwareDownloadSectionState extends State<SoftwareDownloadSection> {
     );
   }
 }
+
 // =============================================================
-// CUSTOMER REVIEWS SECTION (Auto-Scrolling)
+// CUSTOMER REVIEWS SECTION 
 // =============================================================
 class CustomerReviewsSection extends StatefulWidget {
   const CustomerReviewsSection({super.key});
@@ -575,27 +619,23 @@ class _CustomerReviewsSectionState extends State<CustomerReviewsSection> {
   @override
   void initState() {
     super.initState();
-    // Yahan auto-scroll timer start ho raha hai
     _startAutoScroll();
   }
 
   void _startAutoScroll() {
-    // Har 3 second mein list apne aap aage badhegi
     _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (_scrollController.hasClients) {
         double maxScroll = _scrollController.position.maxScrollExtent;
         double currentScroll = _scrollController.position.pixels;
-        double scrollAmount = 350.0; // Ek card jitna aage badhega
+        double scrollAmount = 350.0;
 
         if (currentScroll >= maxScroll - 10) {
-          // List khatam hone par wapas shuru mein smoothly chal jayega
           _scrollController.animateTo(
             0,
             duration: const Duration(milliseconds: 800),
             curve: Curves.fastOutSlowIn,
           );
         } else {
-          // Normal aage badhna
           _scrollController.animateTo(
             currentScroll + scrollAmount,
             duration: const Duration(milliseconds: 800),
@@ -626,7 +666,7 @@ class _CustomerReviewsSectionState extends State<CustomerReviewsSection> {
           const SizedBox(height: 50),
           
           SingleChildScrollView(
-            controller: _scrollController, // Yeh lagana sabse zaroori hai scroll ke liye
+            controller: _scrollController, 
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             child: Row(
@@ -670,152 +710,6 @@ class _CustomerReviewsSectionState extends State<CustomerReviewsSection> {
           ),
         ],
       ),
-    );
-  }
-}
-// =============================================================
-// HERO VIDEO BANNER (NEW ANIMATED TEXT ROTATOR)
-// =============================================================
-class HeroVideoBanner extends StatefulWidget { 
-  const HeroVideoBanner({super.key}); 
-  @override State<HeroVideoBanner> createState() => _HeroVideoBannerState(); 
-}
-
-class _HeroVideoBannerState extends State<HeroVideoBanner> with TickerProviderStateMixin {
-  late VideoPlayerController _controller; 
-  bool _hasError = false; 
-  late AnimationController _animController; 
-  late Animation<double> _fadeAnimation; 
-  late Animation<Offset> _slideAnimation;
-
-  Timer? _timer;
-  int _currentIndex = 0;
-  final List<String> _animatedTexts = [
-    'Your Premium Hub for Photocopy Machines',
-    'Top Quality Toners & Cartridges Available',
-    'All Types of Gears & Spare Parts',
-    'Complete Printing Solutions for Your Business'
-  ];
-
-  @override void initState() {
-    super.initState();
-    _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
-    _fadeAnimation = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-    _slideAnimation = Tween<Offset>(begin: const Offset(0.0, 0.4), end: Offset.zero).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic));
-
-    _controller = VideoPlayerController.asset('assets/videos/e2c34dd59c_golden-particle-drift-abstract-live-wallpaper-wallsflow-com.mp4')
-      ..initialize().then((_) { 
-        setState(() {}); 
-        _controller.setVolume(0.0); 
-        _controller.setLooping(true); 
-        _controller.play(); 
-        _animController.forward(); 
-      }).catchError((error) { setState(() { _hasError = true; }); });
-
-    _timer = Timer.periodic(const Duration(seconds: 3), (Timer t) {
-      if (mounted) {
-        setState(() {
-          _currentIndex = (_currentIndex + 1) % _animatedTexts.length;
-        });
-      }
-    });
-  }
-
-  @override void dispose() { 
-    _timer?.cancel(); 
-    _controller.dispose(); 
-    _animController.dispose(); 
-    super.dispose(); 
-  }
-
-  @override Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity, height: 600, 
-      child: Stack(
-        fit: StackFit.expand, 
-        children: [
-          if (_controller.value.isInitialized) 
-            FittedBox(fit: BoxFit.cover, child: SizedBox(width: _controller.value.size.width, height: _controller.value.size.height, child: VideoPlayer(_controller))) 
-          else if (_hasError) 
-            Container(color: const Color(0xFF181818)) 
-          else 
-            const Center(child: CircularProgressIndicator(color: Colors.white54)), 
-          
-          Container(color: Colors.black.withOpacity(0.55)), 
-          
-          Center(
-            child: FadeTransition(
-              opacity: _fadeAnimation, 
-              child: SlideTransition(
-                position: _slideAnimation, 
-                child: Column(
-                  mainAxisSize: MainAxisSize.min, 
-                  children: [
-                    const Text(
-                      'Welcome to Copystar', 
-                      textAlign: TextAlign.center, 
-                      style: TextStyle(
-                        fontSize: 52, 
-                        fontWeight: FontWeight.w900, 
-                        color: Colors.white, 
-                        letterSpacing: -0.5,
-                        shadows: [
-                          Shadow(color: Colors.black, offset: Offset(0, 4), blurRadius: 15),
-                          Shadow(color: Colors.black87, offset: Offset(0, 8), blurRadius: 30),
-                        ]
-                      )
-                    ), 
-                    const SizedBox(height: 15), 
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 800),
-                        transitionBuilder: (Widget child, Animation<double> animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: Tween<Offset>(begin: const Offset(0.0, 0.5), end: Offset.zero).animate(animation),
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: Text(
-                          _animatedTexts[_currentIndex],
-                          key: ValueKey<int>(_currentIndex), 
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 20, 
-                            fontWeight: FontWeight.bold, 
-                            color: Colors.white, 
-                            height: 1.4,
-                            shadows: [
-                              Shadow(color: Colors.black, offset: Offset(0, 3), blurRadius: 10),
-                              Shadow(color: Colors.black87, offset: Offset(0, 6), blurRadius: 20),
-                            ]
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 35), 
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15), 
-                        backgroundColor: Colors.black.withOpacity(0.6), 
-                        foregroundColor: Colors.white, 
-                        side: const BorderSide(color: Colors.white, width: 2), 
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                        elevation: 10,
-                      ), 
-                      onPressed: () => context.go('/parts'), 
-                      child: const Text('EXPLORE CATALOG', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2))
-                    ) 
-                  ]
-                )
-              )
-            )
-          ) 
-        ]
-      )
     );
   }
 }
