@@ -35,5 +35,5 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/videos/e2c34dd59c_golden-particle-drift-abstract-live-wallpaper-wallsflow-com.mp4
+    # - assets/videos/e2c34dd59c_golden-particle-drift-abstract-live-wallpaper-wallsflow-com.mp4
     - assets/videos/images/

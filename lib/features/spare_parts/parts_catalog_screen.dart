@@ -1,21 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart'; // Added for navigation
+import 'package:go_router/go_router.dart'; 
+import 'package:firebase_database/firebase_database.dart'; // 🟢 Added Firebase
 import '../../core/cart_provider.dart'; 
 import '../../shared/custom_appbar.dart';
 
-// Helper Model class for Products
+// 🟢 UPDATED: Helper Model class to support Firebase data (added price)
 class ProductItem {
+  final String id;
   final String title;
   final String spec;
   final String subName;
   final String imagePath;
+  final double price;
 
   const ProductItem({
+    required this.id,
     required this.title,
     required this.spec,
     required this.subName,
     required this.imagePath,
+    required this.price,
   });
 }
 
@@ -44,10 +49,6 @@ class PartsCatalogScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA), 
       appBar: const CustomAppBar(),
-      
-      // ==========================================
-      // ADDED END DRAWER HERE FOR MOBILE MENU
-      // ==========================================
       endDrawer: _buildMobileDrawer(context),
 
       body: SingleChildScrollView(
@@ -61,61 +62,68 @@ class PartsCatalogScreen extends StatelessWidget {
             ),
             const SizedBox(height: 40),
 
-            _buildCategorySection('Color Toner (Kg)(CMYK)', [
-              const ProductItem(title: 'Cyan Toner (1Kg) - Copystar', spec: 'Konica Minolta C1085/C1100', subName: 'Cyan Toner (1000grm)', imagePath: 'assets/videos/services-full_image/toner image/Cyan Toner (1Kg) - Copystar.jpeg'),
-              const ProductItem(title: 'Magenta Toner (1Kg) - Copystar', spec: 'Konica Minolta C1085/C1100', subName: 'Magenta Toner (1000grm)', imagePath: 'assets/videos/services-full_image/toner image/Magenta Toner (1Kg) - Copystar.jpeg'),
-              const ProductItem(title: 'Yellow Toner (1Kg) - Copystar', spec: 'Konica Minolta C1085/C1100', subName: 'Yellow Toner (1000grm)', imagePath: 'assets/videos/services-full_image/toner image/Yellow Toner (1Kg) - Copystar.jpeg'),
-              const ProductItem(title: 'Black Toner (1Kg) - Copystar', spec: 'Konica Minolta C1085/C1100', subName: 'Black Toner (1000grm)', imagePath: 'assets/videos/services-full_image/toner image/Black Toner (1Kg) - Copystar.jpeg'),
-            ], context, cardWidth, spacing),
+            // 🟢 NAYA: Firebase StreamBuilder for Live CRM Products
+            StreamBuilder(
+              stream: FirebaseDatabase.instance.ref().child('products').onValue,
+              builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(50.0),
+                      child: CircularProgressIndicator(color: Color(0xFF58C485)),
+                    )
+                  );
+                }
+                
+                if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
+                  return const Center(
+                    child: Text('No products available right now.', style: TextStyle(color: Colors.grey, fontSize: 18))
+                  );
+                }
 
-            _buildCategorySection('Toner Cartridge (CMYK)', [
-              const ProductItem(title: 'Yellow Toner Cartridge', spec: 'Konica Minolta C258 / C308 / C358', subName: 'Yellow Toner Cartridge', imagePath: 'assets/videos/services-full_image/CARTRIDGE image/CARTRIDGE Yellow.png'),
-              const ProductItem(title: 'Magenta Toner Cartridge', spec: 'Konica Minolta C258 / C308 / C358', subName: 'Magenta Toner Cartridge', imagePath: 'assets/videos/services-full_image/CARTRIDGE image/CARTRIDGE Magenta.png'),
-              const ProductItem(title: 'Cyan Toner Cartridge', spec: 'Konica Minolta C258 / C308 / C358', subName: 'Cyan Toner Cartridge', imagePath: 'assets/videos/services-full_image/CARTRIDGE image/CARTRIDGE Cyan.png'),
-              const ProductItem(title: 'Black Toner Cartridge', spec: 'Konica Minolta C258 / C308 / C358', subName: 'Black Toner Cartridge', imagePath: 'assets/videos/services-full_image/CARTRIDGE image/CARTRIDGE Black.png'),
-            ], context, cardWidth, spacing),
+                Map<dynamic, dynamic> productsMap = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+                Map<String, List<ProductItem>> groupedProducts = {};
 
-            _buildCategorySection('Toner Cartridge (CMYK) - XEROX Dc240-700i', [
-              const ProductItem(title: 'Yellow Toner Cartridge- 220V', spec: 'XEROX Wc7525 / 7530 / 7535 / 7545 / 7556\nWc7830 / 7835 / 7845 / 7855', subName: 'Yellow Toner Cartridge', imagePath: 'assets/videos/services-full_image/cartridge xrox/Yellow Toner Cartridge.png'),
-              const ProductItem(title: 'Magenta Toner Cartridge (220v)', spec: 'XEROX Wc7525 / 7530 / 7535 / 7545 / 7556\nWc7830 / 7835 / 7845 / 7855', subName: 'Magenta Toner Cartridge', imagePath: 'assets/videos/services-full_image/cartridge xrox/Magenta Toner Cartridge.png'),
-              const ProductItem(title: 'Cyan Toner Cartridge (220v)', spec: 'XEROX Wc7525 / 7530 / 7535 / 7545 / 7556\nWc7830 / 7835 / 7845 / 7855', subName: 'Cyan Toner Cartridge', imagePath: 'assets/videos/services-full_image/cartridge xrox/Cyan Toner Cartridge.png'),
-              const ProductItem(title: 'Black Toner Cartridge (220v)', spec: 'XEROX Wc7525 / 7530 / 7535 / 7545 / 7556\nWc7830 / 7835 / 7845 / 7855', subName: 'Black Toner Cartridge', imagePath: 'assets/videos/services-full_image/cartridge xrox/Black Toner Cartridge.png'),
-            ], context, cardWidth, spacing),
+                productsMap.forEach((key, value) {
+                  var prod = Map<String, dynamic>.from(value);
+                  
+                  if (prod['is_active'] == true) { // Sirf active products dikhayenge
+                    String category = prod['category'] ?? 'Other Parts';
+                    
+                    // CRM data ko aapke ProductItem design mein map kar rahe hain
+                    ProductItem item = ProductItem(
+                      id: key,
+                      title: prod['name'] ?? 'Unknown Product',
+                      spec: prod['description'] ?? 'Standard Part',
+                      subName: prod['name'] ?? '', // Subname aur title same rakha hai CRM sync ke liye
+                      imagePath: prod['image_url'] ?? '',
+                      price: double.tryParse(prod['price'].toString()) ?? 0.0,
+                    );
 
-            _buildCategorySection('Toner Chip (CMYK)', [
-              const ProductItem(title: 'Cyan Toner Chip (220v)', spec: 'XEROX Wc7525 / 7530 / 7535 / 7545 / 7556\nWc7830 / 7835 / 7845 / 7855', subName: 'Cyan Toner Chip', imagePath: 'assets/videos/services-full_image/Toner Chip/Toner Chip.png'),
-              const ProductItem(title: 'Magenta Toner Chip (220v)', spec: 'XEROX Wc7525 / 7530 / 7535 / 7545 / 7556\nWc7830 / 7835 / 7845 / 7855', subName: 'Magenta Toner Chip', imagePath: 'assets/videos/services-full_image/Toner Chip/Toner Chip.png'),
-              const ProductItem(title: 'Yellow Toner Chip (220v)', spec: 'XEROX Wc7525 / 7530 / 7535 / 7545 / 7556\nWc7830 / 7835 / 7845 / 7855', subName: 'Yellow Toner Chip', imagePath: 'assets/videos/services-full_image/Toner Chip/Toner Chip.png'),
-              const ProductItem(title: 'Black Toner Chip (220v)', spec: 'XEROX Wc7525 / 7530 / 7535 / 7545 / 7556\nWc7830 / 7835 / 7845 / 7855', subName: 'Black Toner Chip', imagePath: 'assets/videos/services-full_image/Toner Chip/Toner Chip.png'),
-            ], context, cardWidth, spacing),
-            
-            _buildCategorySection('Opc Drum', [
-              const ProductItem(title: 'Opc Drum - Color', spec: 'XEROX Dc240 / 242 / 250 / 252 / 260', subName: 'Opc Drum - Color', imagePath: 'assets/videos/services-full_image/Opc Drum/Opc Drum - Color.png'),
-              const ProductItem(title: 'Opc Drum - Black', spec: 'XEROX Dc240 / 242 / 250 / 252 / 260', subName: 'Opc Drum - Black', imagePath: 'assets/videos/services-full_image/Opc Drum/Opc Drum - Black.png'),
-              const ProductItem(title: 'Opc Drum', spec: 'Konica Minolta C5500, C6500, C6501 OPC', subName: 'Opc Drum', imagePath: 'assets/videos/services-full_image/Opc Drum/Konica Minolta.png'),
-              const ProductItem(title: 'Opc Drum', spec: 'Konica Minolta C258 / C308 / C358 Long Life OPC Drum', subName: 'Opc Drum', imagePath: 'assets/videos/services-full_image/Opc Drum/Konica Minolta C258.png'),
-            ], context, cardWidth, spacing),
+                    if (!groupedProducts.containsKey(category)) {
+                      groupedProducts[category] = [];
+                    }
+                    groupedProducts[category]!.add(item);
+                  }
+                });
 
-            _buildCategorySection('IBT Belt', [
-              const ProductItem(title: 'C258 IBT Belt', spec: 'Konica Minolta C258 / C308 / C358 IBT BELT', subName: 'IBT BELT', imagePath: 'assets/videos/services-full_image/belt/Konica Minolta belt.png'),
-              const ProductItem(title: 'C5500 IBT Belt', spec: 'Konica Minolta C5500, C6500, C6501 IBT Belt', subName: 'IBT Belt', imagePath: 'assets/videos/services-full_image/belt/Konica Minolta belt.png'),
-              const ProductItem(title: 'Wc7525 IBT Belt', spec: 'XEROX Wc7525 / 7530 / 7535 / 7545 / 7556\nWc7830 / 7835 / 7845 / 7855', subName: 'IBT Belt', imagePath: 'assets/videos/services-full_image/belt/Konica Minolta belt.png'),
-              const ProductItem(title: 'Dc240 IBT Belt', spec: 'XEROX Dc240 / 242 / 250 / 252 / 260', subName: 'IBT Belt', imagePath: 'assets/videos/services-full_image/belt/Konica Minolta belt.png'),
-            ], context, cardWidth, spacing),
+                // Categories ko alphabetical sort karna
+                List<String> categories = groupedProducts.keys.toList();
+                categories.sort();
 
-            _buildCategorySection('Fuser Film', [
-              const ProductItem(title: 'Dc240 Fuser Film', spec: 'XEROX Dc240 / 242 / 250 / 252 / 260\nDc550 / 560 / 700 / 700i', subName: 'Dc240 Fuser Film', imagePath: 'assets/videos/services-full_image/XEROX Fuser Film/XEROX Fuser FilmDc240.png'),
-              const ProductItem(title: 'Wc7525 Fuser Film', spec: 'XEROX Wc7525 / 7530 / 7535 / 7545 / 7556\nWc7830 / 7835 / 7845 / 7855', subName: 'Wc7525 Fuser Film', imagePath: 'assets/videos/services-full_image/XEROX Fuser Film/Fuser Film Wc7525.png'),
-              const ProductItem(title: 'C6000 Fuser Film', spec: 'Konica Minolta C1085, C1100, C70hc', subName: 'C6000 Fuser Film', imagePath: 'assets/videos/services-full_image/XEROX Fuser Film/Konica Minolta Fuser FilmC1085.png'),
-              const ProductItem(title: 'C258 Fuser Film', spec: 'Konica Minolta C258 / C308 / C358', subName: 'C258 Fuser Film', imagePath: 'assets/videos/services-full_image/XEROX Fuser Film/C258 Fuser Film.png'),
-            ], context, cardWidth, spacing),
-
-            _buildCategorySection('Fuser Roller & Lower Roller', [
-              const ProductItem(title: 'Dc240 Fuser Roller', spec: 'Xerox Dc240, Dc242, Dc250, DC252, Dc260', subName: 'Dc240 Fuser Roller', imagePath: 'assets/videos/services-full_image/Roller/Xerox Fuser RollerDc240.png'),
-              const ProductItem(title: 'Wc7525 Fuser Roller', spec: 'XEROX Wc7425 / Wc7428 / Wc7435', subName: 'Wc7525 Fuser Roller', imagePath: 'assets/videos/services-full_image/Roller/Fuser Roller Wc7425.png'),
-              const ProductItem(title: 'C258 Lower Roller', spec: 'Konica Minolta C258 / C308 / C358', subName: 'C258 Lower Roller', imagePath: 'assets/videos/services-full_image/Roller/LOWER ROLLERC258.png'),
-              const ProductItem(title: 'C6500 Fusing Roller', spec: 'Konica Minolta C5500, C6500, C6501', subName: 'C6500 Fusing Roller', imagePath: 'assets/videos/services-full_image/Roller/C6501 Fusing Roller.png'),
-            ], context, cardWidth, spacing),
+                return Column(
+                  children: categories.map((category) {
+                    return _buildCategorySection(
+                      category, 
+                      groupedProducts[category]!, 
+                      context, 
+                      cardWidth, 
+                      spacing
+                    );
+                  }).toList(),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -254,6 +262,29 @@ class PartsCatalogScreen extends StatelessWidget {
   }
 
   Widget _buildProductCard(BuildContext context, ProductItem product, double cardWidth, String categoryTitle) {
+    
+    // 🟢 Image Logic: Check if it's a web URL from Firebase or a local asset
+    Widget imageWidget;
+    if (product.imagePath.startsWith('http')) {
+      imageWidget = Container(
+        height: 80, width: 80, margin: const EdgeInsets.only(top: 10),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Image.network(product.imagePath, fit: BoxFit.cover, errorBuilder: (c, e, s) => _build3DPlaceholder(categoryTitle)),
+        ),
+      );
+    } else if (product.imagePath.isNotEmpty) {
+      imageWidget = Container(
+        height: 80, width: 80, margin: const EdgeInsets.only(top: 10),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Image.asset(product.imagePath, fit: BoxFit.cover, errorBuilder: (c, e, s) => _build3DPlaceholder(categoryTitle)),
+        ),
+      );
+    } else {
+      imageWidget = _build3DPlaceholder(categoryTitle); // Agar koi image nahi dali CRM se
+    }
+
     return Container(
       width: cardWidth, 
       padding: const EdgeInsets.all(15),
@@ -268,7 +299,7 @@ class PartsCatalogScreen extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _build3DPlaceholder(categoryTitle),
+          imageWidget, // Naya image logic yahan apply kiya hai
           const SizedBox(width: 20), 
 
           Expanded(
@@ -285,11 +316,12 @@ class PartsCatalogScreen extends StatelessWidget {
                   'For Use In : ${product.spec}', 
                   style: TextStyle(fontSize: 11, color: Colors.grey.shade600, height: 1.4), 
                 ),
+                
+                // 🟢 Price dikhane ke liye
                 const SizedBox(height: 8),
-
                 Text(
-                  product.subName, 
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
+                  '₹${product.price.toStringAsFixed(0)}', 
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
                 ),
                 const SizedBox(height: 12),
                 
@@ -309,10 +341,11 @@ class PartsCatalogScreen extends StatelessWidget {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                           ),
                           onPressed: () {
+                            // 🟢 CRM price ke sath cart mein add hoga
                             final newItem = CartItem(
                               id: product.title, 
                               name: product.title,
-                              price: 0.0, 
+                              price: product.price, 
                               imageUrl: product.imagePath,
                               quantity: 1,
                             );
@@ -321,7 +354,7 @@ class PartsCatalogScreen extends StatelessWidget {
                             
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('${product.subName} added to cart!'),
+                                content: Text('${product.title} added to cart!'),
                                 backgroundColor: Colors.green,
                                 duration: const Duration(milliseconds: 1500),
                               ),
@@ -362,7 +395,7 @@ class PartsCatalogScreen extends StatelessWidget {
                                 final newItem = CartItem(
                                   id: product.title,
                                   name: product.title,
-                                  price: 0.0,
+                                  price: product.price,
                                   imageUrl: product.imagePath,
                                   quantity: 1,
                                 );
