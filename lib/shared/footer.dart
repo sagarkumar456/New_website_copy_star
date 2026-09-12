@@ -1,5 +1,7 @@
+import 'dart:html' as html; // <-- NAYA IMPORT: YouTube iframe ke liye
+import 'dart:ui' as ui; // <-- NAYA IMPORT: YouTube iframe ke liye
 import 'package:flutter/material.dart';
-import '../core/email_config.dart'; // Apna email_config import kiya
+import '../core/email_config.dart'; // 
 
 class Footer extends StatelessWidget {
   const Footer({super.key});
@@ -12,6 +14,9 @@ class Footer extends StatelessWidget {
       width: double.infinity,
       child: Column(
         children: [
+          // <-- NAYA WIDGET: Sabse upar. Apna YouTube video ID neeche daalein
+          const YoutubeVideoSection(videoId: 'PuNJvLaljwk'),
+          const SizedBox(height: 60),
           const ContactSection(), 
           const SizedBox(height: 60),
           const Divider(color: Colors.white24),
@@ -19,6 +24,66 @@ class Footer extends StatelessWidget {
           Text(
             '© ${DateTime.now().year} Copystar. All rights reserved.',
             style: const TextStyle(color: Colors.grey, fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================
+// YOUTUBE VIDEO SECTION (NAYA WIDGET)
+// =============================================================
+class YoutubeVideoSection extends StatefulWidget {
+  final String videoId; // Sirf YouTube video ID daalein, poora URL nahi
+  const YoutubeVideoSection({super.key, required this.videoId});
+
+  @override
+  State<YoutubeVideoSection> createState() => _YoutubeVideoSectionState();
+}
+
+class _YoutubeVideoSectionState extends State<YoutubeVideoSection> {
+  late final String _viewId;
+
+  @override
+  void initState() {
+    super.initState();
+    _viewId = 'youtube-iframe-${widget.videoId}';
+
+    // ignore: undefined_prefixed_name
+    ui.platformViewRegistry.registerViewFactory(_viewId, (int viewId) {
+      final iframe = html.IFrameElement()
+        ..src = 'https://www.youtube.com/embed/${widget.videoId}'
+        ..style.border = 'none'
+        ..allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
+        ..allowFullscreen = true;
+      return iframe;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 800;
+
+    return Container(
+      width: double.infinity,
+      child: Column(
+        children: [
+          const Text(
+            'Watch Our Video',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          const SizedBox(height: 25),
+          Container(
+            height: isMobile ? 220 : 450,
+            width: double.infinity,
+            constraints: const BoxConstraints(maxWidth: 900),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10))],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: HtmlElementView(viewType: _viewId),
           ),
         ],
       ),
