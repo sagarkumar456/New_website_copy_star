@@ -437,7 +437,7 @@ class _SoftwareDownloadSectionState extends State<SoftwareDownloadSection> {
 
   final List<String> _brands = ['Xerox', 'Canon', 'Konica Minolta', 'Ricoh'];
   final Map<String, String> _driveLinks = {
-    'Xerox': 'https://drive.google.com/file/d/1i1SajozCXLvtG7hLyHvNWINBkqjy197L/view?usp=sharing', 
+    'Xerox': 'https://drive.google.com/drive/folders/1FFPsKwUthHs7IV1qwHHzHZvrMt54KDRU?usp=sharing', 
     'Canon': 'https://drive.google.com/', 
     'Konica Minolta': 'https://drive.google.com/', 
     'Ricoh': 'https://drive.google.com/', 
