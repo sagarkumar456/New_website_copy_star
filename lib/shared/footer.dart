@@ -42,14 +42,12 @@ class Footer extends StatelessWidget {
             },
             child: Column(
               children: [
-                // 1. Copyright text (Bina Date ke)
                 const Text(
                   '© Copystar. All rights reserved.',
                   style: TextStyle(color: Colors.grey, fontSize: 14),
                 ),
                 const SizedBox(height: 12),
                 
-                // 2. Developer Credit with Premium Badge Look
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -62,7 +60,7 @@ class Footer extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: const Color(0xFF4A90E2).withOpacity(0.1), // Halka blue background
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFF4A90E2).withOpacity(0.3)), // Blue border
+                        border: Border.all(color: const Color(0xFF4A90E2).withOpacity(0.3)),
                       ),
                       child: const Row(
                         children: [
@@ -92,7 +90,7 @@ class Footer extends StatelessWidget {
 }
 
 // =============================================================
-// YOUTUBE VIDEO SECTION (RESPONSIVE WIDGET)
+// YOUTUBE VIDEO SECTION (BLACK SCREEN FIX)
 // =============================================================
 class YoutubeVideoSection extends StatefulWidget {
   final String videoId; 
@@ -145,28 +143,13 @@ class _YoutubeVideoSectionState extends State<YoutubeVideoSection> {
           ),
           const SizedBox(height: 35),
           
-          // Responsive Video Container
+          // NAYA CODE: Yahan se ClipRRect aur Decoration HATA diya gaya hai
           Container(
             width: double.infinity,
-            constraints: const BoxConstraints(maxWidth: 850), // Desktop par limit set karna
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.5), 
-                  blurRadius: 25, 
-                  offset: const Offset(0, 15)
-                )
-              ],
-              border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: AspectRatio(
-                aspectRatio: 16 / 9, // Video automatically scale hoga
-                child: HtmlElementView(viewType: _viewId),
-              ),
+            constraints: const BoxConstraints(maxWidth: 850),
+            child: AspectRatio(
+              aspectRatio: 16 / 9, 
+              child: HtmlElementView(viewType: _viewId), // Direct Video
             ),
           ),
         ],
@@ -335,9 +318,6 @@ class _ContactSectionState extends State<ContactSection> {
     );
   }
 
-  // ==========================================
-  // FORM CONTENT 
-  // ==========================================
   Widget _buildFormContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -374,9 +354,6 @@ class _ContactSectionState extends State<ContactSection> {
     );
   }
 
-  // ==========================================
-  // SUCCESS MESSAGE UI
-  // ==========================================
   Widget _buildSuccessMessage() {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -407,7 +384,7 @@ class _ContactSectionState extends State<ContactSection> {
             ),
             onPressed: () {
               setState(() {
-                _isSuccess = false; // Form wapis laane ke liye
+                _isSuccess = false;
               });
             },
             child: const Text('Send Another Message'),
