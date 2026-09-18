@@ -1,7 +1,9 @@
-import 'dart:html' as html; // <-- NAYA IMPORT: YouTube iframe ke liye
-import 'dart:ui' as ui; // <-- NAYA IMPORT: YouTube iframe ke liye
+// ignore_for_file: avoid_web_libraries_in_flutter
+
+import 'dart:html' as html;
+import 'dart:ui_web' as ui_web; 
 import 'package:flutter/material.dart';
-import '../core/email_config.dart'; // 
+import '../core/email_config.dart'; // Apna path check kar lein
 
 class Footer extends StatelessWidget {
   const Footer({super.key});
@@ -14,16 +16,74 @@ class Footer extends StatelessWidget {
       width: double.infinity,
       child: Column(
         children: [
-          // <-- NAYA WIDGET: Sabse upar. Apna YouTube video ID neeche daalein
           const YoutubeVideoSection(videoId: 'PuNJvLaljwk'),
           const SizedBox(height: 60),
           const ContactSection(), 
           const SizedBox(height: 60),
           const Divider(color: Colors.white24),
           const SizedBox(height: 20),
-          Text(
-            '© ${DateTime.now().year} Copystar. All rights reserved.',
-            style: const TextStyle(color: Colors.grey, fontSize: 14),
+          
+          // ==========================================
+          // ANIMATED FOOTER TEXT & DEVELOPER CREDIT
+          // ==========================================
+          TweenAnimationBuilder(
+            tween: Tween<double>(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 1500),
+            curve: Curves.easeOutCubic,
+            builder: (context, double value, child) {
+              return Opacity(
+                opacity: value,
+                // Halke se neeche se upar aane wala (slide-up) effect
+                child: Transform.translate(
+                  offset: Offset(0, 20 * (1 - value)), 
+                  child: child,
+                ),
+              );
+            },
+            child: Column(
+              children: [
+                // 1. Copyright text (Bina Date ke)
+                const Text(
+                  '© Copystar. All rights reserved.',
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                
+                // 2. Developer Credit with Premium Badge Look
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Developer : ',
+                      style: TextStyle(color: Colors.white54, fontSize: 14),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4A90E2).withOpacity(0.1), // Halka blue background
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFF4A90E2).withOpacity(0.3)), // Blue border
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.code, size: 14, color: Color(0xFF4A90E2)),
+                          SizedBox(width: 5),
+                          Text(
+                            'Sagar Kumar',
+                            style: TextStyle(
+                              color: Color(0xFF4A90E2), 
+                              fontSize: 13, 
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                )
+              ],
+            ),
           ),
         ],
       ),
@@ -32,10 +92,10 @@ class Footer extends StatelessWidget {
 }
 
 // =============================================================
-// YOUTUBE VIDEO SECTION (NAYA WIDGET)
+// YOUTUBE VIDEO SECTION (RESPONSIVE WIDGET)
 // =============================================================
 class YoutubeVideoSection extends StatefulWidget {
-  final String videoId; // Sirf YouTube video ID daalein, poora URL nahi
+  final String videoId; 
   const YoutubeVideoSection({super.key, required this.videoId});
 
   @override
@@ -50,11 +110,13 @@ class _YoutubeVideoSectionState extends State<YoutubeVideoSection> {
     super.initState();
     _viewId = 'youtube-iframe-${widget.videoId}';
 
-    // ignore: undefined_prefixed_name
-    ui.platformViewRegistry.registerViewFactory(_viewId, (int viewId) {
+    ui_web.platformViewRegistry.registerViewFactory(_viewId, (int viewId) {
       final iframe = html.IFrameElement()
-        ..src = 'https://www.youtube.com/embed/${widget.videoId}'
+        ..src = 'https://www.youtube.com/embed/${widget.videoId}?rel=0&modestbranding=1'
         ..style.border = 'none'
+        ..style.width = '100%'
+        ..style.height = '100%'
+        ..style.borderRadius = '16px' // HTML level par corners round karna
         ..allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
         ..allowFullscreen = true;
       return iframe;
@@ -63,27 +125,49 @@ class _YoutubeVideoSectionState extends State<YoutubeVideoSection> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 800;
-
-    return Container(
+    return SizedBox(
       width: double.infinity,
       child: Column(
         children: [
           const Text(
             'Watch Our Video',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          const SizedBox(height: 25),
-          Container(
-            height: isMobile ? 220 : 450,
-            width: double.infinity,
-            constraints: const BoxConstraints(maxWidth: 900),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10))],
+            style: TextStyle(
+              fontSize: 32, 
+              fontWeight: FontWeight.bold, 
+              color: Colors.white,
+              letterSpacing: 1.2
             ),
-            clipBehavior: Clip.antiAlias,
-            child: HtmlElementView(viewType: _viewId),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'See our products and services in action',
+            style: TextStyle(color: Colors.grey, fontSize: 16),
+          ),
+          const SizedBox(height: 35),
+          
+          // Responsive Video Container
+          Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(maxWidth: 850), // Desktop par limit set karna
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.5), 
+                  blurRadius: 25, 
+                  offset: const Offset(0, 15)
+                )
+              ],
+              border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: AspectRatio(
+                aspectRatio: 16 / 9, // Video automatically scale hoga
+                child: HtmlElementView(viewType: _viewId),
+              ),
+            ),
           ),
         ],
       ),
@@ -91,6 +175,9 @@ class _YoutubeVideoSectionState extends State<YoutubeVideoSection> {
   }
 }
 
+// =============================================================
+// CONTACT SECTION
+// =============================================================
 class ContactSection extends StatefulWidget {
   const ContactSection({super.key});
 
@@ -249,7 +336,7 @@ class _ContactSectionState extends State<ContactSection> {
   }
 
   // ==========================================
-  // FORM CONTENT (When not submitted yet)
+  // FORM CONTENT 
   // ==========================================
   Widget _buildFormContent() {
     return Column(
@@ -303,10 +390,10 @@ class _ContactSectionState extends State<ContactSection> {
         ),
         const SizedBox(height: 15),
         const Text(
-  'Your request has been successfully submitted.\nWe will get back to you within 24 hours.',
-  textAlign: TextAlign.center,
-  style: TextStyle(fontSize: 16, color: Colors.white70, height: 1.5),
-),
+          'Your request has been successfully submitted.\nWe will get back to you within 24 hours.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 16, color: Colors.white70, height: 1.5),
+        ),
         const SizedBox(height: 30),
         SizedBox(
           width: double.infinity,
